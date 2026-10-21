@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>click.io — Console Server</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/800.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/700.css">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  :root{
+    --bg:#07080d;
+    --card:#10131c;
+    --card2:#151926;
+    --border:rgba(255,255,255,.08);
+    --text:#e8eaf2;
+    --muted:#8b91a7;
+    --violet:#8b5cf6;
+    --cyan:#22d3ee;
+    --green:#4ade80;
+    --red:#f87171;
+    --yellow:#facc15;
+  }
+
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  .glow{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(600px 400px at 15% -5%, rgba(139,92,246,.16), transparent 70%),
+      radial-gradient(700px 450px at 90% 10%, rgba(34,211,238,.10), transparent 70%),
+      radial-gradient(800px 600px at 50% 110%, rgba(139,92,246,.08), transparent 70%);
+  }
+
+  .wrap{ position:relative; z-index:1; max-width:960px; margin:0 auto; padding:28px 20px 60px; }
+
+  /* ===== Header ===== */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:34px;
+  }
+  .logo{
+    font-size:24px; font-weight:800; letter-spacing:-.5px;
+    background:linear-gradient(90deg,var(--violet),var(--cyan));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .badge-top{
+    font-size:12px; font-weight:600; color:var(--muted);
+    border:1px solid var(--border); border-radius:999px;
+    padding:6px 14px; background:rgba(255,255,255,.03);
+    display:flex; align-items:center; gap:8px;
+  }
+  .badge-top .dot{ width:8px; height:8px; border-radius:50%; background:var(--yellow); animation:pulseDot 1.4s infinite; }
+
+  @keyframes pulseDot{ 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.4; transform:scale(.8);} }
+
+  /* ===== Cards ===== */
+  .card{
+    background:linear-gradient(180deg,var(--card2),var(--card));
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:38px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+
+  .hidden{ display:none !important; }
+
+  /* ===== Intro ===== */
+  #introCard h1{
+    font-size:clamp(26px,4vw,36px); font-weight:800; letter-spacing:-1px;
+    margin-bottom:12px;
+  }
+  #introCard h1 span{
+    background:linear-gradient(90deg,var(--violet),var(--cyan));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  #introCard p.lead{ color:var(--muted); font-size:15px; line-height:1.7; max-width:620px; margin-bottom:28px; }
+
+  .specs{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px; margin-bottom:30px;
+  }
+  .spec{
+    background:rgba(255,255,255,.03);
+    border:1px solid var(--border);
+    border-radius:14px; padding:14px 16px;
+  }
+  .spec .k{ font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:6px; }
+  .spec .v{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text); font-weight:700; }
+  .spec .v small{ color:var(--cyan); font-weight:400; }
+
+  #startBtn{
+    position:relative;
+    display:inline-flex; align-items:center; gap:12px;
+    font-family:'Inter',sans-serif; font-size:16px; font-weight:700; color:#fff;
+    background:linear-gradient(90deg,var(--violet),#6d5ef7 55%,var(--cyan));
+    border:none; border-radius:14px; padding:16px 34px; cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease, filter .18s;
+    box-shadow:0 8px 30px rgba(139,92,246,.35);
+  }
+  #startBtn:hover{ transform:translateY(-2px); box-shadow:0 12px 40px rgba(139,92,246,.5); filter:brightness(1.08); }
+  #startBtn:active{ transform:translateY(0) scale(.98); }
+  #startBtn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+  #startBtn .ico{ font-size:18px; }
+
+  .note{ margin-top:16px; font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:8px; }
+
+  /* ===== Console ===== */
+  .term-head{
+    display:flex; align-items:center; justify-content:space-between;
+    background:#1a1e2c; border:1px solid var(--border); border-bottom:none;
+    border-radius:14px 14px 0 0; padding:12px 16px;
+  }
+  .term-dots{ display:flex; gap:7px; }
+  .term-dots i{ width:12px; height:12px; border-radius:50%; display:block; }
+  .term-dots i:nth-child(1){ background:#ff5f57; } .term-dots i:nth-child(2){ background:#febc2e; } .term-dots i:nth-child(3){ background:#28c840; }
+  .term-title{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); }
+  .status{
+    display:flex; align-items:center; gap:8px;
+    font-size:11px; font-weight:700; letter-spacing:1px;
+    border:1px solid var(--border); border-radius:999px; padding:5px 12px;
+    background:rgba(0,0,0,.3);
+  }
+  .status .sdot{ width:8px; height:8px; border-radius:50%; }
+  .status.offline{ color:var(--red); } .status.offline .sdot{ background:var(--red); }
+  .status.booting{ color:var(--yellow); } .status.booting .sdot{ background:var(--yellow); animation:pulseDot 1s infinite; }
+  .status.auth{ color:var(--cyan); } .status.auth .sdot{ background:var(--cyan); animation:pulseDot .8s infinite; }
+  .status.online{ color:var(--green); } .status.online .sdot{ background:var(--green); box-shadow:0 0 10px var(--green); }
+
+  #terminal{
+    position:relative;
+    background:#05060a;
+    border:1px solid var(--border);
+    border-radius:0 0 14px 14px;
+    height:460px; overflow-y:auto; overflow-x:hidden;
+    padding:16px 18px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px; line-height:1.65;
+    color:#d4d8e3;
+  }
+  #terminal::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px);
+  }
+  #terminal::-webkit-scrollbar{ width:9px; }
+  #terminal::-webkit-scrollbar-track{ background:#0a0c12; }
+  #terminal::-webkit-scrollbar-thumb{ background:#2a2f42; border-radius:6px; }
+
+  .line{ white-space:pre-wrap; word-break:break-word; }
+  .ts{ color:#5b6178; }
+  .okb{ color:#3f4560; }
+  .ok{ color:var(--green); font-weight:700; }
+  .dim{ color:#9aa1b8; }
+  .dim2{ color:#6c7390; }
+  .warn{ color:var(--yellow); }
+  .err{ color:var(--red); font-weight:700; }
+  .raw{ color:#e6e9f2; }
+  .grub{ color:#fff; font-weight:700; }
+  .appinfo{ color:#7dd3fc; }
+  .appname{ color:#a78bfa; }
+
+  .cursor{ display:inline-block; width:8px; height:15px; background:var(--green); vertical-align:text-bottom; animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ===== Login nel terminale ===== */
+  .term-input{
+    background:transparent; border:none; outline:none;
+    font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:700;
+    color:var(--green); caret-color:var(--green);
+    width:260px; padding:0; margin:0;
+  }
+  .login-note{
+    margin-top:16px; padding:12px 16px;
+    border:1px solid rgba(34,211,238,.35); border-radius:12px;
+    background:rgba(34,211,238,.06);
+    font-size:13px; color:#a5e8f7;
+    display:flex; align-items:center; gap:10px;
+    animation:notePulse 2s ease-in-out infinite;
+  }
+  @keyframes notePulse{
+    0%,100%{ box-shadow:0 0 0 rgba(34,211,238,0); }
+    50%{ box-shadow:0 0 18px rgba(34,211,238,.25); }
+  }
+
+  /* ===== Progress ===== */
+  .prog-wrap{ margin-top:20px; }
+  .prog-info{ display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; font-size:12.5px; }
+  .prog-phase{ color:var(--text); font-weight:600; }
+  .prog-pct{ font-family:'JetBrains Mono',monospace; color:var(--cyan); font-weight:700; }
+  .prog-track{
+    height:10px; background:rgba(255,255,255,.06); border-radius:999px; overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .prog-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg,var(--violet),var(--cyan));
+    border-radius:999px;
+    box-shadow:0 0 14px rgba(34,211,238,.5);
+    transition:width .25s linear;
+  }
+  .stats-bar{
+    display:flex; flex-wrap:wrap; gap:18px; margin-top:14px;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted);
+  }
+  .stats-bar b{ color:var(--text); font-weight:700; }
+
+  /* ===== SYSTEM IS UP ===== */
+  .sysup{
+    margin:18px 0 6px;
+    border:1px solid rgba(74,222,128,.55);
+    background:rgba(74,222,128,.07);
+    border-radius:12px; padding:20px 22px; text-align:center;
+    box-shadow:0 0 30px rgba(74,222,128,.25), inset 0 0 24px rgba(74,222,128,.06);
+    animation:sysGlow 1.6s ease-in-out infinite;
+  }
+  @keyframes sysGlow{
+    0%,100%{ box-shadow:0 0 22px rgba(74,222,128,.22), inset 0 0 20px rgba(74,222,128,.05); }
+    50%{ box-shadow:0 0 42px rgba(74,222,128,.45), inset 0 0 30px rgba(74,222,128,.10); }
+  }
+  .sysup-title{
+    font-size:24px; font-weight:700; letter-spacing:4px; color:var(--green);
+    text-shadow:0 0 18px rgba(74,222,128,.6);
+  }
+  .sysup-sub{ margin-top:8px; font-size:12px; color:#9ff0bf; font-family:'Inter',sans-serif; }
+
+  .redirect-line{
+    margin-top:14px; text-align:center; font-family:'Inter',sans-serif;
+    font-size:13.5px; color:#7dd3fc;
+  }
+  .redirect-line b{ color:#fff; }
+
+  /* ===== Footer ===== */
+  footer{
+    margin-top:36px; text-align:center; color:var(--muted); font-size:13px;
+  }
+  footer a{ color:var(--cyan); text-decoration:none; font-weight:600; }
+  footer a:hover{ text-decoration:underline; }
+
+  @media (max-width:640px){
+    .card{ padding:22px; }
+    #terminal{ height:380px; font-size:11px; }
+    .term-title{ display:none; }
+    .term-input{ font-size:11px; width:160px; }
+  }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo">click.io</div>
+    <div class="badge-top"><span class="dot"></span> Infrastruttura di produzione</div>
+  </header>
+
+  <!-- ===== INTRO ===== -->
+  <section class="card" id="introCard">
+    <h1>Console del <span>Server</span></h1>
+    <p class="lead">
+      Server dedicato <strong>click-io-prod</strong> — tutti i servizi click.io vengono distribuiti e
+      monitorati da questa macchina. Premi il pulsante per eseguire l'avvio del sistema: il processo
+      richiede circa un minuto e, al termine della sequenza, verranno richieste le
+      <strong>credenziali amministratore</strong> per completare il boot.
+    </p>
+
+    <div class="specs">
+      <div class="spec"><div class="k">Sistema</div><div class="v">Ubuntu Server <small>22.04.3 LTS</small></div></div>
+      <div class="spec"><div class="k">CPU</div><div class="v">8 vCore <small>@ 2.40GHz</small></div></div>
+      <div class="spec"><div class="k">Memoria</div><div class="v">16 GB <small>DDR4 ECC</small></div></div>
+      <div class="spec"><div class="k">Indirizzo IP</div><div class="v">45.132.78.210</div></div>
+      <div class="spec"><div class="k">Kernel</div><div class="v">5.15.0-91-generic</div></div>
+      <div class="spec"><div class="k">Stato</div><div class="v" style="color:var(--red)">● SPENTO</div></div>
+    </div>
+
+    <button id="startBtn"><span class="ico">▶</span> Avvia Server</button>
+    <div class="note">⏱ L'avvio completo richiede circa 60 secondi. Non chiudere la pagina.</div>
+  </section>
+
+  <!-- ===== CONSOLE ===== -->
+  <section class="card hidden" id="consoleCard">
+    <div class="term-head">
+      <div class="term-dots"><i></i><i></i><i></i></div>
+      <div class="term-title">root@click-io-prod:~# boot-sequence — 80×24</div>
+      <div class="status booting" id="statusBadge"><span class="sdot"></span><span id="statusText">BOOTING</span></div>
+    </div>
+    <div id="terminal"></div>
+
+    <div class="login-note hidden" id="loginNote">
+      🔐 <span>Autenticazione richiesta — inserisci le credenziali amministratore direttamente nel terminale per completare l'avvio.</span>
+    </div>
+
+    <div class="prog-wrap">
+      <div class="prog-info">
+        <span class="prog-phase" id="phaseLabel">Firmware / POST</span>
+        <span class="prog-pct" id="pctLabel">0%</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <div class="stats-bar">
+        <span>UPTIME <b id="stUptime">0s</b></span>
+        <span>CPU <b id="stCpu">0.0%</b></span>
+        <span>RAM <b id="stRam">0.4 GB / 16 GB</b></span>
+        <span>LOAD <b id="stLoad">0.00</b></span>
+        <span>DISK I/O <b id="stIo">0 MB/s</b></span>
+      </div>
+    </div>
+  </section>
+
+  <footer>Made by <strong>HappyDev</strong> · Hai un problema o una segnalazione? <a href="https://form.jotform.com/261684609665066" target="_blank" rel="noopener">Scrivici</a></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ===== Credenziali amministratore =====
+  var ADMIN_USER = "ARTURO";
+  var ADMIN_PASS = "glm34xcv";
+
+  var PHASE_NAMES = {
+    post:    "Firmware / POST",
+    kernel:  "Kernel Linux 5.15.0",
+    systemd: "Init systemd",
+    rete:    "Rete & sicurezza",
+    servizi: "Servizi core",
+    app:     "Applicazioni click.io",
+    auth:    "Autenticazione amministratore"
+  };
+
+  var APPS = [
+    ["Klaro AI",3001],["NodeSearch",3002],["Dropp",3003],["Transcript",3004],
+    ["Mp4Pure",3005],["Mirrorcast",3006],["Footscan",3007],["SunnyWeek",3008],
+    ["Freecraft",3009],["Mailbot",3010],["Probatio",3011]
+  ];
+
+  // [delay ms, fase, tipo, testo]
+  var BOOT = [
+    [400,"post","raw","SeaBIOS (version rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org)"],
+    [260,"post","dim2","CPU: QEMU Virtual CPU version 2.5+ @ 2.40GHz — 8 cores detected"],
+    [360,"post","dim2","Memory Test: 16777216 KB OK"],
+    [300,"post","dim2","IPMI firmware 2.12 — all sensors nominal"],
+    [480,"post","raw","Booting from Hard Disk..."],
+    [520,"post","grub","GNU GRUB  version 2.06"],
+    [640,"post","dim","Loading Linux 5.15.0-91-generic ..."],
+    [700,"post","dim","Loading initial ramdisk ..."],
+
+    [300,"kernel","kern","Linux version 5.15.0-91-generic (buildd@lcy02-amd64-077) (x86_64-linux-gnu-gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, GNU ld (GNU Binutils for Ubuntu) 2.38) #101-Ubuntu SMP"],
+    [250,"kernel","kern","Command line: BOOT_IMAGE=/vmlinuz-5.15.0-91-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro console=ttyS0,115200n8"],
+    [200,"kernel","kern","BIOS-provided physical RAM map: [mem 0x0000000000000000-0x00000000bfffffff] usable"],
+    [190,"kernel","kern","smpboot: Allowing 8 CPUs, 0 hotplug CPUs"],
+    [230,"kernel","kern","Memory: 16093812K/16777216K available (16421K kernel code, 2873K rwdata, 11384K rodata)"],
+    [210,"kernel","kern","clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x24e6a1710, max_idle_ns: 440795202120 ns"],
+    [180,"kernel","kern","NET: Registered PF_INET protocol family"],
+    [260,"kernel","kern","pci 0000:00:01.1: enabling NVMe controller"],
+    [300,"kernel","kern","scsi 0:0:0:0: [sda] 500118192 512-byte logical blocks: (256 GB/238 GiB)"],
+    [360,"kernel","kern","EXT4-fs (dm-0): mounted filesystem with ordered data mode. Opts: (null). Quota mode: none."],
+    [200,"kernel","kern","random: crng init done"],
+    [250,"kernel","kern","systemd[1]: Detected virtualization kvm."],
+    [200,"kernel","kern","systemd[1]: Detected architecture x86-64."],
+    [310,"kernel","kern","systemd[1]: Ubuntu 22.04.3 LTS found in os-release."],
+    [250,"kernel","kern","systemd[1]: Set hostname to <click-io-prod>."],
+    [160,"kernel","kern","ACPI: Power Button [PWRF]"],
+    [420,"kernel","kern","e1000e 0000:00:1f.6 eth0: NIC Link is Up 1000 Mbps Full Duplex, Flow Control: Rx/Tx"],
+
+    [520,"systemd","start","Journal Service"],
+    [420,"systemd","ok","Started Journal Service."],
+    [400,"systemd","dim2","systemd-journald[412]: Journal started"],
+    [260,"systemd","ok","Created slice Slice /system/modprobe."],
+    [310,"systemd","ok","Set up automount proc-sys-fs-binfmt_misc.automount."],
+    [400,"systemd","start","Create System Users"],
+    [350,"systemd","ok","Finished Create System Users."],
+    [460,"systemd","start","Remount Root and Kernel File Systems"],
+    [360,"systemd","ok","Finished Remount Root and Kernel File Systems."],
+    [520,"systemd","dim2","systemd-fsck[487]: /dev/mapper/ubuntu--vg-ubuntu--lv: clean, 291873/15237120 files, 3811245/60930048 blocks"],
+    [360,"systemd","ok","Reached target Local File Systems."],
+    [410,"systemd","start","Load Kernel Modules"],
+    [310,"systemd","ok","Finished Load Kernel Modules."],
+    [360,"systemd","start","Apply Kernel Variables"],
+    [300,"systemd","ok","Finished Apply Kernel Variables."],
+    [460,"systemd","start","Create Volatile Files and Directories"],
+    [360,"systemd","ok","Finished Create Volatile Files and Directories."],
+    [410,"systemd","ok","Started udev Coldplug all Devices."],
+    [460,"systemd","start","Rule-based Manager for Device Events and Files"],
+    [360,"systemd","ok","Started Rule-based Manager for Device Events and Files."],
+    [380,"systemd","dim2","audit: type=1400 audit(1761129244.121:7): apparmor=\"STATUS\" operation=\"profile_load\" profile=\"unconfined\" name=\"/usr/sbin/mysqld\""],
+    [900,"systemd","start","AppArmor initialization"],
+    [520,"systemd","ok","Finished AppArmor initialization."],
+    [500,"systemd","dim2","cloud-init[823]: Cloud-init v. 23.3.3 running 'init-local' at Thu, 22 Oct 2026 09:14:02 +0000"],
+    [720,"systemd","dim2","cloud-init[823]: Searching for local data source in: ['NoCloud', 'ConfigDrive', 'OpenNebula', 'DigitalOcean', 'EC2']"],
+    [520,"systemd","ok","Reached target System Initialization."],
+
+    [620,"rete","start","Network Manager"],
+    [520,"rete","ok","Started Network Manager."],
+    [600,"rete","dim2","systemd-networkd[689]: eth0: Configured static address 45.132.78.210/24 (gateway 45.132.78.1)"],
+    [460,"rete","ok","Reached target Network."],
+    [360,"rete","ok","Started Hostname Service."],
+    [520,"rete","start","Network Time Synchronization"],
+    [420,"rete","ok","Started Network Time Synchronization."],
+    [410,"rete","ok","Reached target Network is Online."],
+    [560,"rete","start","OpenBSD Secure Shell server"],
+    [460,"rete","ok","Started OpenBSD Secure Shell server."],
+    [520,"rete","ok","Started Netfilter firewalls (ufw)."],
+    [360,"rete","ok","Started Regular background program processing daemon."],
+    [470,"rete","start","Accounts Service"],
+    [360,"rete","ok","Started Accounts Service."],
+    [420,"rete","ok","Started irqbalance scheduling daemon."],
+    [820,"rete","start","Snap Daemon"],
+    [560,"rete","ok","Started Snap Daemon."],
+    [520,"rete","start","Authorization Manager"],
+    [420,"rete","ok","Started Authorization Manager."],
+
+    [720,"servizi","start","containerd container runtime"],
+    [480,"servizi","ok","Started containerd container runtime."],
+    [700,"servizi","start","Docker Application Container Engine"],
+    [1500,"servizi","dim2","dockerd[1421]: loading containers metadata from /var/lib/docker ..."],
+    [700,"servizi","dim2","dockerd[1421]: starting network subsystem (bridge0)"],
+    [900,"servizi","ok","Started Docker Application Container Engine."],
+    [500,"servizi","dim2","dockerd[1421]: API listen on /var/run/docker.sock"],
+    [800,"servizi","start","MySQL Community Server"],
+    [1500,"servizi","dim2","mysqld[1583]: InnoDB: Starting initialization of buffer pool, size = 2.0 GiB"],
+    [1000,"servizi","dim2","mysqld[1583]: InnoDB: Buffer pool(s) load completed at 2026-10-22 09:14:41"],
+    [700,"servizi","dim2","mysqld[1583]: ready for connections. Version: '8.0.35-0ubuntu0.22.04.1'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306"],
+    [800,"servizi","ok","Started MySQL Community Server."],
+    [560,"servizi","start","Redis In-Memory Data Store"],
+    [420,"servizi","dim2","redis-server[1734]: Ready to accept connections on 127.0.0.1:6379"],
+    [400,"servizi","ok","Started Redis In-Memory Data Store."],
+    [620,"servizi","start","A high performance web server and a reverse proxy server"],
+    [460,"servizi","ok","Started nginx - high performance web server."],
+    [420,"servizi","start","certbot certificate renewal timer"],
+    [320,"servizi","ok","Started certbot renew.timer."],
+    [720,"servizi","start","PM2 Process Manager"],
+    [460,"servizi","ok","Started PM2 Process Manager."],
+    [470,"servizi","start","Monitoring of LVM2 mirrors and snapshots"],
+    [370,"servizi","ok","Finished Monitoring of LVM2 mirrors and snapshots."],
+    [620,"servizi","ok","Started clickio-daemon.service — click.io Core Services Manager."],
+
+    [700,"app","appinfo","clickio-daemon[2104]: deploying 11 services from /opt/clickio ..."]
+  ];
+
+  APPS.forEach(function(a){
+    BOOT.push([550,"app","appline",a[0]+"|"+a[1]]);
+  });
+
+  BOOT.push([700,"app","appinfo","clickio-daemon[2104]: health check — 11/11 services healthy, 0 errors, avg latency 42ms"]);
+  BOOT.push([500,"app","appinfo","nginx[1892]: upstream gateway ready — 11 backends, 0 failed checks"]);
+  BOOT.push([600,"app","dim2","clickio-daemon[2104]: gateway in attesa di autorizzazione amministratore..."]);
+  BOOT.push([400,"app","login",""]);
+
+  // Sequenza dopo il login riuscito
+  var POSTLOGIN = [
+    [350,"auth","raw","Last login: Wed Oct 21 18:32:07 UTC 2026 on ttyS0"],
+    [500,"auth","dim2","Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-91-generic x86_64)"],
+    [420,"auth","dim2"," * Documentation: https://help.ubuntu.com\n * Management:     https://landscape.canonical.com\n * Support:        https://ubuntu.com/advantage"],
+    [550,"auth","appinfo","clickio-daemon[2104]: administrator session authorized — releasing gateway"],
+    [600,"auth","ok","Reached target Multi-User System."],
+    [500,"auth","final",""]
+  ];
+
+  // ---- elementi DOM
+  var introCard   = document.getElementById('introCard');
+  var consoleCard = document.getElementById('consoleCard');
+  var startBtn    = document.getElementById('startBtn');
+  var terminal    = document.getElementById('terminal');
+  var progFill    = document.getElementById('progFill');
+  var pctLabel    = document.getElementById('pctLabel');
+  var phaseLabel  = document.getElementById('phaseLabel');
+  var statusBadge = document.getElementById('statusBadge');
+  var statusText  = document.getElementById('statusText');
+  var loginNote   = document.getElementById('loginNote');
+  var stUptime    = document.getElementById('stUptime');
+  var stCpu       = document.getElementById('stCpu');
+  var stRam       = document.getElementById('stRam');
+  var stLoad      = document.getElementById('stLoad');
+  var stIo        = document.getElementById('stIo');
+
+  var cursorLine = document.createElement('div');
+  cursorLine.className = 'line';
+  cursorLine.innerHTML = '<span class="cursor"></span>';
+
+  var startPerf = 0, markKernelEnd = 0, markBootEnd = 0;
+  var totalMs = BOOT.reduce(function(s,l){ return s + l[0] + 30; }, 0);
+  var done = false, statsTimer = null, running = false;
+  var waitingLogin = false, loginDone = false;
+  var currentInput = null;
+
+  function pad(n,w){ var s = String(n); while(s.length < w) s = ' ' + s; return s; }
+
+  function elapsed(){ return (performance.now() - startPerf) / 1000; }
+
+  function kernStamp(t){
+    return '<span class="ts">[' + pad(t.toFixed(6), 11) + ']</span>';
+  }
+
+  function addLine(cls, html){
+    var div = document.createElement('div');
+    div.className = 'line ' + cls;
+    div.innerHTML = html;
+    terminal.insertBefore(div, cursorLine.parentNode ? cursorLine : null);
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function setStatus(cls, txt){
+    statusBadge.className = 'status ' + cls;
+    statusText.textContent = txt;
+  }
+
+  function render(entry, phaseOverride){
+    var phase = phaseOverride || entry[1], type = entry[2], text = entry[3];
+    phaseLabel.textContent = PHASE_NAMES[phase] || phase;
+
+    if(phase === 'systemd' && markKernelEnd === 0) markKernelEnd = elapsed();
+
+    switch(type){
+      case 'kern':
+        addLine('', kernStamp(elapsed()) + ' ' + text); break;
+      case 'ok':
+        addLine('', '<span class="okb">[  <span class="ok">OK</span>  ]</span> ' + text); break;
+      case 'start':
+        addLine('dim', '         Starting ' + text + '...'); break;
+      case 'raw':
+        addLine('raw', text); break;
+      case 'grub':
+        addLine('grub', '╔══════════════════════════════════════════╗\n║  ' + text.padEnd(40) + '║\n║  <span style="color:#4ade80">*Ubuntu</span>                                    ║\n╚══════════════════════════════════════════╝'); break;
+      case 'dim': case 'dim2': case 'warn': case 'err':
+        addLine(type, text); break;
+      case 'appinfo':
+        addLine('appinfo', '<span class="ts">[clickio]</span> ' + text); break;
+      case 'appline':
+        var parts = text.split('|');
+        var name = parts[0], port = parts[1];
+        var dots = new Array(Math.max(1, 16 - name.length) + 1).join('.');
+        addLine('', '<span class="ts">[clickio]</span> <span class="appname">▸ ' + name + '</span> <span class="dim2">' + dots + '</span> :' + port + '  <span class="ok">✓ ONLINE</span>');
+        break;
+      case 'login':
+        showLogin(); break;
+      case 'final':
+        finish(); break;
+    }
+  }
+
+  // ===== LOGIN =====
+  function showLogin(){
+    waitingLogin = true;
+    phaseLabel.textContent = PHASE_NAMES.auth;
+    setStatus('auth', 'AUTH REQUIRED');
+    loginNote.classList.remove('hidden');
+    cursorLine.remove();
+
+    addLine('dim2','');
+    addLine('raw','Ubuntu 22.04.3 LTS click-io-prod ttyS0');
+    addLine('dim2','');
+    showPrompt(false);
+  }
+
+  function showPrompt(isPassword){
+    var div = document.createElement('div');
+    div.className = 'line';
+    var label = isPassword ? 'Password: ' : 'click-io-prod login: ';
+    var span = document.createElement('span');
+    span.style.color = '#e8eaf2';
+    span.textContent = label;
+    div.appendChild(span);
+
+    var inp = document.createElement('input');
+    inp.type = isPassword ? 'password' : 'text';
+    inp.className = 'term-input';
+    inp.setAttribute('autocomplete','off');
+    inp.setAttribute('autocapitalize','off');
+    inp.setAttribute('spellcheck','false');
+    div.appendChild(inp);
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+    currentInput = inp;
+    setTimeout(function(){ inp.focus(); }, 60);
+
+    inp.addEventListener('keydown', function(ev){
+      if(ev.key !== 'Enter') return;
+      var val = inp.value;
+      // sostituisce la riga interattiva con l'eco statica (come una vera tty)
+      var staticDiv = document.createElement('div');
+      staticDiv.className = 'line';
+      staticDiv.style.color = '#e8eaf2';
+      staticDiv.textContent = label + (isPassword ? '' : val);
+      div.replaceWith(staticDiv);
+      currentInput = null;
+      handleCreds(isPassword, val);
+    });
+  }
+
+  function handleCreds(isPass, val){
+    if(!isPass){
+      if(val === ADMIN_USER){
+        showPrompt(true);
+      } else {
+        addLine('err','Login incorrect');
+        showPrompt(false);
+      }
+    } else {
+      if(val === ADMIN_PASS){
+        onLoginSuccess();
+      } else {
+        addLine('err','Login incorrect');
+        showPrompt(false);
+      }
+    }
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function onLoginSuccess(){
+    waitingLogin = false;
+    loginDone = true;
+    loginNote.classList.add('hidden');
+    setStatus('booting', 'BOOTING');
+    addLine('ok','');
+    addLine('','<span class="okb">[  <span class="ok">OK</span>  ]</span> Autenticazione amministratore riuscita — utente <span class="ok">' + ADMIN_USER + '</span>');
+    runPost(0);
+  }
+
+  function runPost(idx){
+    if(idx >= POSTLOGIN.length) return;
+    var entry = POSTLOGIN[idx];
+    setTimeout(function(){
+      render(entry);
+      updateStats();
+      runPost(idx + 1);
+    }, entry[0] + Math.random() * 60);
+  }
+
+  // click sul terminale → focus sull'input attivo
+  terminal.addEventListener('click', function(){
+    if(currentInput) currentInput.focus();
+  });
+
+  // ===== FINE =====
+  function finish(){
+    markBootEnd = elapsed();
+    var kSec = (markKernelEnd).toFixed(1);
+    var uSec = (markBootEnd - markKernelEnd).toFixed(1);
+    var tSec = (markBootEnd).toFixed(1);
+    addLine('', kernStamp(markBootEnd) + ' systemd[1]: Startup finished in ' + kSec + 's (kernel) + ' + uSec + 's (userspace) = ' + tSec + 's.');
+
+    progFill.style.width = '100%';
+    pctLabel.textContent = '100%';
+    phaseLabel.textContent = 'Avvio completato';
+    setStatus('online', 'ONLINE');
+
+    var box = document.createElement('div');
+    box.className = 'sysup';
+    box.innerHTML = '<div class="sysup-title">● SYSTEM IS UP</div>' +
+                    '<div class="sysup-sub">Tutti i servizi click.io sono operativi — click-io-prod (45.132.78.210) · sessione admin: ' + ADMIN_USER + '</div>';
+    terminal.appendChild(box);
+
+    var redir = document.createElement('div');
+    redir.className = 'redirect-line';
+    redir.innerHTML = 'Reindirizzamento a <b>https://altadefinizionex.forum/</b> tra <b id="cd">3</b> secondi…';
+    terminal.appendChild(redir);
+    terminal.scrollTop = terminal.scrollHeight;
+
+    var n = 3;
+    var cdEl = document.getElementById('cd');
+    var cdTimer = setInterval(function(){
+      n--;
+      if(n <= 0){
+        clearInterval(cdTimer);
+        redir.innerHTML = 'Connessione a <b>https://altadefinizionex.forum/</b> …';
+        window.location.href = 'https://altadefinizionex.forum/';
+      } else {
+        cdEl.textContent = n;
+      }
+    }, 1000);
+
+    done = true;
+    clearInterval(statsTimer);
+    stCpu.textContent = '3.1%';
+    stLoad.textContent = '0.38';
+    stIo.textContent = '2 MB/s';
+  }
+
+  function updateStats(){
+    var e = elapsed();
+    var pct;
+    if(done){
+      pct = 100;
+    } else if(waitingLogin){
+      pct = 96 + Math.sin(e) * 0.4; // resta in attesa al 96%
+    } else if(loginDone){
+      pct = 96 + Math.min(3, (e - markBootEnd > 0 ? 3 : (e % 4)));
+      pct = Math.min(99, pct);
+    } else {
+      pct = Math.min(95, (e / (totalMs/1000)) * 100);
+    }
+    progFill.style.width = pct.toFixed(1) + '%';
+    pctLabel.textContent = Math.floor(pct) + '%';
+
+    var prog = Math.min(1, e / (totalMs/1000));
+    stUptime.textContent = Math.floor(e) + 's';
+    var cpuBase = done ? 3 : (2 + prog * 14 + Math.random() * 5);
+    stCpu.textContent = cpuBase.toFixed(1) + '%';
+    var ram = (0.4 + prog * (done ? 2.4 : 2.9) + Math.random() * 0.15);
+    stRam.textContent = ram.toFixed(1) + ' GB / 16 GB';
+    stLoad.textContent = ((done ? 0.3 : 0.1 + prog * 1.1) + Math.random() * 0.2).toFixed(2);
+    stIo.textContent = Math.round((done ? 2 : 5 + prog * 90 + Math.random() * 30)) + ' MB/s';
+  }
+
+  function runSequence(idx){
+    if(idx >= BOOT.length) return;
+    var entry = BOOT[idx];
+    var delay = entry[0] + Math.random() * 60;
+    setTimeout(function(){
+      render(entry);
+      updateStats();
+      if(entry[2] !== 'login') runSequence(idx + 1);
+    }, delay);
+  }
+
+  startBtn.addEventListener('click', function(){
+    if(running) return;
+    running = true;
+    startBtn.disabled = true;
+    introCard.classList.add('hidden');
+    consoleCard.classList.remove('hidden');
+    terminal.innerHTML = '';
+    terminal.appendChild(cursorLine);
+
+    startPerf = performance.now();
+    statsTimer = setInterval(updateStats, 250);
+    updateStats();
+    runSequence(0);
+  });
+})();
+</script>
+</body>
+</html>
